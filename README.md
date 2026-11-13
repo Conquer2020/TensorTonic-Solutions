@@ -27,6 +27,7 @@ Verified machine learning implementations completed on [TensorTonic](https://www
 | Rotary Query and Key Embeddings | Rotate each adjacent coordinate pair of query and key vectors by a position-dependent angle. | https://www.tensortonic.com/problems/cs336-l03-rotary-query-key-embeddings |
 | Top-k MoE Router with Load Statistics | Route each token to its highest-scoring experts, combine selected outputs, add the shared expert, and report load statistics. | https://www.tensortonic.com/problems/cs336-l04-topk-moe-router |
 | Decode Attention with a KV Cache | Append one key and value position to a KV cache and compute grouped-query attention for the next token. | https://www.tensortonic.com/problems/cs336-l10-kv-cache-decode-step |
+| Simulate Continuous Decode Batching | Simulate continuous token decoding with arrival-ordered admission, active-capacity limits, and completion times. | https://www.tensortonic.com/problems/cs336-l18-continuous-batching-scheduler |
 | Implement Softmax Function | Implement numerically stable softmax by shifting logits before exponentiation and normalizing probabilities. | https://www.tensortonic.com/problems/softmax-function |
 
 View my verified ML profile: [TensorTonic profile](https://www.tensortonic.com/profile/kongconquer2020)
