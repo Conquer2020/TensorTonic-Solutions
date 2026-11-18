@@ -5,35 +5,46 @@ import triton.language as tl
 
 
 @triton.jit
-def row_softmax_kernel(x_ptr, out_ptr, row_stride, n_cols, BLOCK_SIZE):
+def row_softmax_kernel(x_ptr, out_ptr, row_stride, n_cols, BLOCK_SIZE: tl.constexpr):
     '''
     return nothing; writes normalized rows through out_ptr
     '''
+    
     row = tl.program_id(0)
-    lane = tl.arange(0, 1024)
+    cols = tl.arange(0, BLOCK_SIZE)
+    mask = cols < n_cols
+    x = tl.load(x_ptr + row * row_stride + cols, mask=mask, other=float('-inf')).to(tl.float32)
+    ma = tl.max(x, axis=0)
+    nom = tl.exp(x - ma)
+    denom = tl.sum(nom, axis=0)
 
-    ma = tl.full((), float('-inf'), tl.float32)
+    tl.store(out_ptr + row * n_cols + cols, value=nom / denom, mask=mask)
 
-    for block in range(tl.cdiv(n_cols, 1024)):
-        col = block * 1024 +  lane 
+    # row = tl.program_id(0)
+    # lane = tl.arange(0, 1024)
 
-        x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
-        ma = tl.maximum(ma, tl.max(x, axis=0))
+    # ma = tl.full((), float('-inf'), tl.float32)
 
-    denom = tl.full((), 0., tl.float32)
+    # for block in range(tl.cdiv(n_cols, 1024)):
+    #     col = block * 1024 +  lane 
 
-    for block in range(tl.cdiv(n_cols, 1024)):
-        col = block * 1024 + lane 
+    #     x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
+    #     ma = tl.maximum(ma, tl.max(x, axis=0))
 
-        x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
-        denom += tl.sum(tl.exp(x - ma), axis=0)
+    # denom = tl.full((), 0., tl.float32)
 
-    for block in range(tl.cdiv(n_cols, 1024)):
-        col = block * 1024 + lane 
-        x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
+    # for block in range(tl.cdiv(n_cols, 1024)):
+    #     col = block * 1024 + lane 
 
-        # NOTE: MUST be n_cols, not row_stride(only for load func). NOT forget tl.exp()
-        tl.store(out_ptr + row * n_cols + col, tl.exp(x - ma) / denom, mask = col < n_cols)
+    #     x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
+    #     denom += tl.sum(tl.exp(x - ma), axis=0)
+
+    # for block in range(tl.cdiv(n_cols, 1024)):
+    #     col = block * 1024 + lane 
+    #     x = tl.load(x_ptr + row * row_stride + col, mask= col < n_cols, other=float('-inf')).to(tl.float32)
+
+    #     # NOTE: MUST be n_cols, not row_stride(only for load func). NOT forget tl.exp()
+    #     tl.store(out_ptr + row * n_cols + col, tl.exp(x - ma) / denom, mask = col < n_cols)
     
 def solve(x: torch.Tensor, out: torch.Tensor) -> None:
     if x.ndim != 2 or x.shape[1] == 0:
